@@ -1,0 +1,141 @@
+(defvar my-module (ps:chain angular (module "Angello" [])))
+
+(ps:chain my-module
+          (factory "angelloHelper"
+                   (lambda ()
+                     (defvar build-index
+                       (lambda (source property)
+                         (when (null source)
+                           (ps:return (array)))
+                         (defvar temp-array (array))
+                         (dotimes (i (if (null source) 0 source.length))
+                           (setf
+                            (elt temp-array (elt (elt source i) property))
+                            (elt source i)))
+                         (return temp-array)))
+
+                     (return (ps:create build-index build-index)))))
+
+(ps:chain my-module
+          (factory "angelloModel"
+                   (lambda ()
+                     (defvar get-statuses
+                       (lambda ()
+                         (defvar temp-array
+                           (array
+                            (ps:create name "Back Log")
+                            (ps:create name "To Do")
+                            (ps:create name "In Progress")
+                            (ps:create name "Code Review")
+                            (ps:create name "QA Review")
+                            (ps:create name "Verified")
+                            (ps:create name "Done")))
+                         (return temp-array)))
+
+                     (defvar get-types
+                       (lambda ()
+                         (defvar temp-array
+                           (array
+                            (ps:create name "Feature")
+                            (ps:create name "Enhancement")
+                            (ps:create name "Bug")
+                            (ps:create name "Spike")))
+                         (ps:return temp-array)))
+
+                     (defvar get-stories
+                       (lambda ()
+                         (defvar temp-array
+                                 (array
+                                  (ps:create title  "Story 00"
+                                      description  "Description pending."
+                                      criteria  "Criteria pending."
+                                      status  "To Do"
+                                      type  "Feature"
+                                      reporter  "Lukas Ruebbelke"
+                                      assignee  "Brian Ford")
+                                  (ps:create title  "Story 01"
+                                      description  "Description pending."
+                                      criteria  "Criteria pending."
+                                      status  "Back Log"
+                                      type  "Feature"
+                                      reporter  "Lukas Ruebbelke"
+                                      assignee  "Brian Ford")
+                                  (ps:create title  "Story 02"
+                                      description  "Description pending."
+                                      criteria  "Criteria pending."
+                                      status  "Code Review"
+                                      type  "Enhancement"
+                                      reporter  "Lukas Ruebbelke"
+                                      assignee  "Brian Ford")
+                                  (ps:create title  "Story 03"
+                                      description  "Description pending."
+                                      criteria  "Criteria pending."
+                                      status  "Done"
+                                      type  "Enhancement"
+                                      reporter  "Lukas Ruebbelke"
+                                      assignee  "Brian Ford")
+                                  (ps:create title  "Story 04"
+                                      description  "Description pending."
+                                      criteria  "Criteria pending."
+                                      status  "Verified"
+                                      type  "Bug"
+                                      reporter  "Lukas Ruebbelke"
+                                      assignee  "Brian Ford")
+                                  (ps:create title  "Story 05"
+                                      description  "Description pending."
+                                      criteria  "Criteria pending."
+                                      status  "To Do"
+                                      type  "Spike"
+                                      reporter  "Lukas Ruebbelke"
+                                      assignee  "Brian Ford")))
+                         (ps:return temp-array)))
+
+                     (ps:return
+                       (ps:create
+                        get-statuses get-statuses
+                        get-types get-types
+                        get-stories get-stories)))))
+
+(ps:chain my-module
+          (controller "MainCtrl"
+                      (lambda ($scope angello-model angello-helper)
+                        (ps:@ $scope current-story)
+                        (setf (ps:@ $scope types)
+                              (ps:chain angello-model (get-types)))
+                        (setf (ps:@ $scope types)
+                              (ps:chain angello-model (get-statuses)))
+                        (setf (ps:@ $scope stories)
+                              (ps:chain angello-model (get-stories)))
+
+                        (setf (ps:@ $scope set-current-status)
+                              (lambda (status)
+                                (if (ps:!== (ps:@ $scope current-story) "undefined")
+                                    (setf (ps:@ $scope current-story status)
+                                          (ps:@ status name)))))
+                        (setf (ps:@ $scope set-current-type)
+                              (lambda (type)
+                                (if (ps:!== (ps:@ $scope current-story) "undefined")
+                                    (setf (ps:@ $scope current-story type)
+                                          (ps:@ type name)))))
+                        (setf (ps:@ $scope types-index)
+                              (ps:chain angello-helper
+                                        (build-index
+                                         (ps:@ $scope types) "name")))
+                        (setf (ps:@ $scope statuses-index)
+                              (ps:chain angello-helper
+                                        (build-index
+                                         (ps:@ $scope statuses) "name")))
+                        (setf (ps:@ $scope set-current-story)
+                              (lambda (story)
+                                (setf (ps:@ $scope current-story) story)
+                                (setf (ps:@ $scope current-status)
+                                      (elt (ps:@ $scope statuses-index) (ps:@ story status)))
+                                (setf (ps:@ $scope current-type)
+                                      (elt (ps:@ $scope types-index) (ps:@ story type)))))
+                        (setf (ps:@ $scope create-story)
+                              (lambda ()
+                                (ps:chain $scope stories
+                                          (push
+                                           (ps:create title "New Story"
+                                                      description "Description pending.")))))
+                        nil)))
